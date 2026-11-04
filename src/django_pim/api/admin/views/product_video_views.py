@@ -167,6 +167,10 @@ class ProductVideoViewSet(viewsets.ViewSet):
         try:
             pv = get_product_video(channel_idx=channel_idx, sku=sku, pk=pk)
             return Response(_build_product_video_response(pv).model_dump(), status=status.HTTP_200_OK)
+        except Channel.DoesNotExist:
+            raise drf_exceptions.NotFound(f"Channel '{channel_idx}' not found") from None
+        except Product.DoesNotExist:
+            raise drf_exceptions.NotFound(f"Product with SKU '{sku}' not found in channel '{channel_idx}'") from None
         except ProductVideo.DoesNotExist:
             raise drf_exceptions.NotFound(f"ProductVideo with pk {pk} not found") from None
         except Exception as e:
@@ -251,6 +255,10 @@ class ProductVideoViewSet(viewsets.ViewSet):
             fields = {k: v for k, v in data.model_dump().items() if v is not None}
             pv = update_product_video(channel_idx=channel_idx, sku=sku, pk=pk, **fields)
             return Response(_build_product_video_response(pv).model_dump(), status=status.HTTP_200_OK)
+        except Channel.DoesNotExist:
+            raise drf_exceptions.NotFound(f"Channel '{channel_idx}' not found") from None
+        except Product.DoesNotExist:
+            raise drf_exceptions.NotFound(f"Product with SKU '{sku}' not found in channel '{channel_idx}'") from None
         except ProductVideo.DoesNotExist:
             raise drf_exceptions.NotFound(f"ProductVideo with pk {pk} not found") from None
         except ValueError as e:
@@ -286,6 +294,10 @@ class ProductVideoViewSet(viewsets.ViewSet):
         try:
             deleted = delete_product_video(channel_idx=channel_idx, sku=sku, pk=pk)
             return Response({"deleted": deleted}, status=status.HTTP_200_OK)
+        except Channel.DoesNotExist:
+            raise drf_exceptions.NotFound(f"Channel '{channel_idx}' not found") from None
+        except Product.DoesNotExist:
+            raise drf_exceptions.NotFound(f"Product with SKU '{sku}' not found in channel '{channel_idx}'") from None
         except ProductVideo.DoesNotExist:
             raise drf_exceptions.NotFound(f"ProductVideo with pk {pk} not found") from None
         except Exception as e:

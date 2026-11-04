@@ -18,6 +18,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework_simplejwt.authentication import JWTAuthentication
 
+from ....models import Channel
 from ....schemas import AttributesGroupListResponse, AttributesGroupResponse
 from ....schemas.requests import CreateAttributesGroupRequest, UpdateAttributesGroupRequest
 from ....services import (
@@ -121,6 +122,8 @@ class AttributesGroupViewSet(viewsets.ViewSet):
 
             return Response(response_data.model_dump(), status=status.HTTP_200_OK)
 
+        except Channel.DoesNotExist:
+            raise drf_exceptions.NotFound(f"Channel '{channel_idx}' not found") from None
         except Exception as e:
             return internal_error(e)
 

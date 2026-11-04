@@ -206,6 +206,10 @@ class ProductPictureViewSet(viewsets.ViewSet):
         try:
             pp = get_product_picture(channel_idx=channel_idx, sku=sku, pk=pk)
             return Response(_build_product_picture_response(pp).model_dump(), status=status.HTTP_200_OK)
+        except Channel.DoesNotExist:
+            raise drf_exceptions.NotFound(f"Channel '{channel_idx}' not found") from None
+        except Product.DoesNotExist:
+            raise drf_exceptions.NotFound(f"Product with SKU '{sku}' not found in channel '{channel_idx}'") from None
         except ProductPicture.DoesNotExist:
             raise drf_exceptions.NotFound(f"ProductPicture with pk {pk} not found") from None
         except Exception as e:
@@ -322,6 +326,10 @@ class ProductPictureViewSet(viewsets.ViewSet):
             fields = {k: v for k, v in data.model_dump().items() if v is not None}
             pp = update_product_picture(channel_idx=channel_idx, sku=sku, pk=pk, **fields)
             return Response(_build_product_picture_response(pp).model_dump(), status=status.HTTP_200_OK)
+        except Channel.DoesNotExist:
+            raise drf_exceptions.NotFound(f"Channel '{channel_idx}' not found") from None
+        except Product.DoesNotExist:
+            raise drf_exceptions.NotFound(f"Product with SKU '{sku}' not found in channel '{channel_idx}'") from None
         except ProductPicture.DoesNotExist:
             raise drf_exceptions.NotFound(f"ProductPicture with pk {pk} not found") from None
         except ValueError as e:
@@ -357,6 +365,10 @@ class ProductPictureViewSet(viewsets.ViewSet):
         try:
             deleted = unlink_picture_from_product(channel_idx=channel_idx, sku=sku, pk=pk)
             return Response({"deleted": deleted}, status=status.HTTP_200_OK)
+        except Channel.DoesNotExist:
+            raise drf_exceptions.NotFound(f"Channel '{channel_idx}' not found") from None
+        except Product.DoesNotExist:
+            raise drf_exceptions.NotFound(f"Product with SKU '{sku}' not found in channel '{channel_idx}'") from None
         except ProductPicture.DoesNotExist:
             raise drf_exceptions.NotFound(f"ProductPicture with pk {pk} not found") from None
         except Exception as e:

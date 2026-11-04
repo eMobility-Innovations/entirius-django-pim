@@ -16,6 +16,9 @@
   `feature_type` and `categories/` with a bad `parent_category`. The findings operation documents the 400 and the
   `product_ids` limit in OpenAPI.
 - Requires `entirius-django-utils>=2.4.0` (query location on validation details, a 409 keeps its message).
+- Admin API: an unknown channel on `{channel}/feature-sets/` (list, detail, features) and
+  `{channel}/attributes-groups/`, and an unknown channel or product on the picture, video, link and file routes
+  under `products/{sku}/.../{pk}/`, answer 404 `NOT_FOUND` like the other channel routes instead of 500.
 
 ## 3.5.0 — 2026-10-27
 - Admin API: a page out of range (`?page=0`, past the last page) answers 404 `NOT_FOUND` in the v2 envelope

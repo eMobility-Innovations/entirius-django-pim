@@ -152,6 +152,32 @@ def test_not_found_is_v2_envelope(authenticated_client, world, method, path, pay
     assert body["details"] == []
 
 
+UNKNOWN_PARENT = [
+    # Routes that answered 500 when the channel (or, on the nested detail routes, the product) did not exist.
+    ("get", "nope-channel/feature-sets/", None),
+    ("get", "nope-channel/feature-sets/v2err-set/", None),
+    ("get", "nope-channel/feature-sets/v2err-set/features/", None),
+    ("get", "nope-channel/attributes-groups/", None),
+    *[
+        (method, f"{channel}/products/{sku}/{child}/1/", payload)
+        for channel, sku in (("nope-channel", SKU), (CH, "NOPE"))
+        for child in ("pictures", "videos", "links")
+        for method, payload in (("get", None), ("patch", {}), ("delete", None))
+        if not (child == "links" and method == "get")  # links retrieve already caught both
+    ],
+    ("delete", f"nope-channel/products/{SKU}/files/1/", None),
+    ("delete", f"{CH}/products/NOPE/files/1/", None),
+]
+
+
+@pytest.mark.django_db
+@pytest.mark.parametrize(("method", "path", "payload"), UNKNOWN_PARENT, ids=[f"{m} {p}" for m, p, _ in UNKNOWN_PARENT])
+def test_unknown_channel_or_product_is_404(authenticated_client, world, method, path, payload):
+    response = getattr(authenticated_client, method)(f"{V2}/{path}", payload, format="json")
+
+    assert_envelope(response, 404, "NOT_FOUND")
+
+
 BAD_REQUEST = [
     # (method, path, payload, text in details[].description)
     ("get", "gap-definitions/?ordering=bogus", None, "ordering"),

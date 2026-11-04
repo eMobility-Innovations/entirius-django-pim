@@ -175,6 +175,8 @@ class FeatureSetViewSet(viewsets.ViewSet):
 
             return Response(response_data.model_dump(), status=status.HTTP_200_OK)
 
+        except Channel.DoesNotExist:
+            raise drf_exceptions.NotFound(f"Channel '{channel_idx}' not found") from None
         except FeatureSet.DoesNotExist:
             raise drf_exceptions.NotFound("Feature set not found") from None
         except ValueError as e:
@@ -204,6 +206,8 @@ class FeatureSetViewSet(viewsets.ViewSet):
         try:
             feature_set = get_feature_set_by_idx(idx=idx, channel_idx=channel_idx)
             return Response(_build_feature_set_response(feature_set).model_dump(), status=status.HTTP_200_OK)
+        except Channel.DoesNotExist:
+            raise drf_exceptions.NotFound(f"Channel '{channel_idx}' not found") from None
         except FeatureSet.DoesNotExist:
             raise drf_exceptions.NotFound(f"Feature set with idx '{idx}' not found") from None
         except Exception as e:
@@ -333,6 +337,8 @@ class FeatureSetViewSet(viewsets.ViewSet):
 
             return Response(response_data.model_dump(), status=status.HTTP_200_OK)
 
+        except Channel.DoesNotExist:
+            raise drf_exceptions.NotFound(f"Channel '{channel_idx}' not found") from None
         except FeatureSet.DoesNotExist:
             raise drf_exceptions.NotFound(f"Feature set with idx '{idx}' not found") from None
         except Exception as e:

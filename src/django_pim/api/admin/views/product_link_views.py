@@ -247,6 +247,10 @@ class ProductLinkViewSet(viewsets.ViewSet):
             fields = {k: v for k, v in data.model_dump().items() if v is not None}
             link = update_product_link(channel_idx=channel_idx, sku=sku, pk=pk, **fields)
             return Response(_build_link_response(link).model_dump(), status=status.HTTP_200_OK)
+        except Channel.DoesNotExist:
+            raise drf_exceptions.NotFound(f"Channel '{channel_idx}' not found") from None
+        except Product.DoesNotExist:
+            raise drf_exceptions.NotFound(f"Product with SKU '{sku}' not found in channel '{channel_idx}'") from None
         except ProductLink.DoesNotExist:
             raise drf_exceptions.NotFound(f"ProductLink with pk {pk} not found") from None
         except Exception as e:
@@ -280,6 +284,10 @@ class ProductLinkViewSet(viewsets.ViewSet):
         try:
             deleted = delete_product_link(channel_idx=channel_idx, sku=sku, pk=pk)
             return Response({"deleted": deleted}, status=status.HTTP_200_OK)
+        except Channel.DoesNotExist:
+            raise drf_exceptions.NotFound(f"Channel '{channel_idx}' not found") from None
+        except Product.DoesNotExist:
+            raise drf_exceptions.NotFound(f"Product with SKU '{sku}' not found in channel '{channel_idx}'") from None
         except ProductLink.DoesNotExist:
             raise drf_exceptions.NotFound(f"ProductLink with pk {pk} not found") from None
         except Exception as e:

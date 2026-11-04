@@ -268,6 +268,10 @@ class ProductFileViewSet(viewsets.ViewSet):
         try:
             deleted = unlink_file_from_product(channel_idx=channel_idx, sku=sku, pk=pk)
             return Response({"deleted": deleted}, status=status.HTTP_200_OK)
+        except Channel.DoesNotExist:
+            raise drf_exceptions.NotFound(f"Channel '{channel_idx}' not found") from None
+        except Product.DoesNotExist:
+            raise drf_exceptions.NotFound(f"Product with SKU '{sku}' not found in channel '{channel_idx}'") from None
         except ProductFile.DoesNotExist:
             raise drf_exceptions.NotFound(f"ProductFile with pk {pk} not found") from None
         except Exception as e:
