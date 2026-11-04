@@ -44,7 +44,7 @@ dependencies = [
     "entirius-py-image-transformations>=2.0.0",
     "entirius-py-process-logger>=2.0.0",
     "entirius-django-regional>=2.0.0",
-    "entirius-django-utils>=2.0.0",
+    "entirius-django-utils>=2.4.0",
 ]
 
 [project.optional-dependencies]
