@@ -20,6 +20,16 @@ ORDERING_MAP: dict[str, str] = {
     "-position": "-position",
 }
 
+_EDITABLE_FIELDS = frozenset({"link_type_idx", "position"})
+
+
+def _is_duplicate(link: ProductLink) -> bool:
+    """Another link already joins these products with this type (the model's unique_together)."""
+    others = ProductLink.objects.filter(
+        product_id=link.product_id, linked_product_id=link.linked_product_id, link_type_id=link.link_type_id
+    )
+    return others.exclude(pk=link.pk).exists() if link.pk else others.exists()
+
 
 def resolve_product_name(product: Product) -> str:
     """Resolve product name from the system 'name' feature attribute."""
@@ -102,12 +112,10 @@ def create_product_link(
     if product.pk == linked_product.pk:
         raise ValueError("Cannot link a product to itself")
 
-    if ProductLink.objects.filter(product=product, linked_product=linked_product, link_type=link_type).exists():
+    link = ProductLink(product=product, linked_product=linked_product, link_type=link_type, position=position)
+    if _is_duplicate(link):
         raise ValueError(f"Product link already exists: {sku} → {linked_product_sku} ({link_type_idx})")
-
-    link = ProductLink.objects.create(
-        product=product, linked_product=linked_product, link_type=link_type, position=position
-    )
+    link.save()
 
     return ProductLink.objects.select_related("linked_product__real_product", "link_type").get(pk=link.pk)
 
@@ -118,19 +126,19 @@ def update_product_link(channel_idx: str, sku: str, pk: int, **fields: object) -
 
     Raises:
         Channel.DoesNotExist, Product.DoesNotExist, ProductLink.DoesNotExist, ProductLinkType.DoesNotExist
-        ValueError: If the new link type duplicates another link between the same products
+        ValueError: If a field is not editable, or the new link type duplicates another link between the same products
     """
+    invalid = set(fields) - _EDITABLE_FIELDS
+    if invalid:
+        raise ValueError(f"Fields not editable via update_product_link: {sorted(invalid)}")
     channel = Channel.objects.get(idx=channel_idx)
     product = Product.objects.select_related("real_product").get(shop=channel, real_product__sku__iexact=sku)
-    link = ProductLink.objects.select_related("linked_product__real_product").get(product=product, pk=pk)
+    link = ProductLink.objects.get(product=product, pk=pk)
 
     if "link_type_idx" in fields and fields["link_type_idx"] is not None:
         link_type_idx = fields.pop("link_type_idx")
         link.link_type = ProductLinkType.objects.get(idx=link_type_idx)
-        duplicate = ProductLink.objects.filter(
-            product=product, linked_product=link.linked_product, link_type=link.link_type
-        ).exclude(pk=link.pk)
-        if duplicate.exists():
+        if _is_duplicate(link):
             linked_sku = link.linked_product.real_product.sku
             raise ValueError(f"Product link already exists: {sku} → {linked_sku} ({link_type_idx})")
 

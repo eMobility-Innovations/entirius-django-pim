@@ -14,7 +14,7 @@ from unittest.mock import patch
 import pytest
 from django.core.files.uploadedfile import SimpleUploadedFile
 
-from django_pim.models import Product
+from django_pim.models import Product, ProductLink
 from django_pim.models.feature import FeatureScopeEnum
 from tests.factories import (
     AttributesGroupFactory,
@@ -281,16 +281,28 @@ class TestLinkUpdate:
         ProductLinkFactory(product=product, linked_product=linked, link_type__idx="v2err-crosssell")
         return f"{V2}/{CH}/products/{SKU}/links/{related.pk}/"
 
+    @staticmethod
+    def _stored_type(url: str) -> str:
+        return ProductLink.objects.get(pk=url.rstrip("/").rsplit("/", 1)[1]).link_type.idx
+
     def test_unknown_link_type_is_404(self, authenticated_client, links):
         response = authenticated_client.patch(links, {"link_type_idx": "nope"}, format="json")
 
         assert_envelope(response, 404, "NOT_FOUND")
+        assert self._stored_type(links) == "v2err-related"
 
     def test_duplicate_link_type_is_400(self, authenticated_client, links):
         response = authenticated_client.patch(links, {"link_type_idx": "v2err-crosssell"}, format="json")
 
         body = assert_envelope(response, 400, "VALIDATION_ERROR")
         assert "already exists" in body["details"][0]["description"]
+        assert self._stored_type(links) == "v2err-related"
+
+    def test_empty_link_type_is_400_like_create(self, authenticated_client, links):
+        response = authenticated_client.patch(links, {"link_type_idx": ""}, format="json")
+
+        body = assert_envelope(response, 400, "VALIDATION_ERROR")
+        assert body["details"][0]["field"] == "link_type_idx"
 
     def test_new_link_type_is_saved(self, authenticated_client, links):
         ProductLinkTypeFactory(idx="v2err-upsell")
