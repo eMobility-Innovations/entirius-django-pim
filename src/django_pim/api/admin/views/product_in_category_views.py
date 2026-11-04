@@ -81,8 +81,8 @@ class ProductInCategoryViewSet(viewsets.ViewSet):
             page = request.query_params.get("page", None)
             page_size = request.query_params.get("page_size", "24")
 
-            page_int = int_query_param(page, "page")
-            page_size_int = min(int_query_param(page_size, "page_size") if page_size else 24, 100)
+            page_int = int_query_param(page, "page", minimum=1)
+            page_size_int = min(int_query_param(page_size, "page_size", minimum=0) if page_size else 24, 100)
 
             result = list_products_in_category(
                 channel_idx=channel_idx, category_idx=idx, search=search, page=page_int, page_size=page_size_int

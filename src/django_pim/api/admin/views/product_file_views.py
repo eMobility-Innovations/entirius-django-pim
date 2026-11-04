@@ -112,6 +112,8 @@ class FileUploadView(APIView):
                 file_type=request.data.get("file_type", None),
             )
             return Response(_build_file_response(f).model_dump(), status=status.HTTP_201_CREATED)
+        except InvalidRequestError as e:
+            raise_client_error(e)
         except Exception as e:
             return internal_error(e)
 

@@ -247,12 +247,12 @@ class ProductPictureViewSet(viewsets.ViewSet):
                         f"Image size exceeds maximum of {MAX_PICTURE_SIZE // (1024 * 1024)}MB"
                     )
 
-                picture = upload_picture(image_file)
-                picture_role = request.data.get("picture_role", "general")
                 try:
                     position = int(request.data.get("position", 0))
                 except (TypeError, ValueError):
                     raise drf_exceptions.ValidationError({"position": ["A valid integer is required."]}) from None
+                picture = upload_picture(image_file)
+                picture_role = request.data.get("picture_role", "general")
                 language_iso2 = request.data.get("language_iso2", None)
                 alt_text_t9n = request.data.get("alt_text_t9n", {})
 

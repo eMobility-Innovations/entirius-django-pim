@@ -30,7 +30,7 @@ from ....services import (
     reorder_categories,
     update_category,
 )
-from ..errors import internal_error, query_param_error, raise_client_error
+from ..errors import int_query_param, internal_error, raise_client_error
 from ..pagination import AdminPageNumberPagination
 from ..permissions import IsAdminUser
 
@@ -159,14 +159,7 @@ class CategoryViewSet(viewsets.ViewSet):
             if root_only_param is not None:
                 root_only = root_only_param.lower() in ("true", "1", "yes")
 
-            parent_category_id = None
-            if parent_category_param is not None:
-                try:
-                    parent_category_id = int(parent_category_param)
-                except ValueError:
-                    raise query_param_error(
-                        "parent_category", "Invalid parent_category parameter: must be an integer"
-                    ) from None
+            parent_category_id = int_query_param(parent_category_param, "parent_category")
 
             categories_qs = list_categories(
                 channel_idx=channel_idx,

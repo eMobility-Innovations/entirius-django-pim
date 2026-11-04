@@ -13,13 +13,21 @@
 
 ### Changed
 
-- Admin API: a `ValueError` the PIM did not raise as a refusal answers 500 instead of 400 with its text. Every
-  refusal the services, models and validators write (duplicate idx/SKU, SYSTEM feature, circular category,
-  inheritance off, unknown role/language/ordering/severity/gap params, a bad idx, SKU or EAN from
-  `idx_normalizator`) keeps its 400 (409 for add-to-channel) and its message.
+- Admin API: a `ValueError` the PIM did not raise as a refusal answers 500 instead of 400 with its text, on every
+  admin route that answered a service `ValueError` with a 400. The refusals the services, `ProductAttribute.save()`,
+  `FeatureInFeatureSet` and the validators write on those routes (duplicate idx/SKU, SYSTEM feature, circular
+  category, inheritance off, unknown role/language/ordering/severity/gap params, a bad idx, SKU or EAN from
+  `idx_normalizator`) keep their 400 (409 for add-to-channel) and their message.
 - Admin API: a non-integer `visibility` or `product_class` on `{channel}/products/`, `page` or `page_size` on
   `{channel}/categories/{idx}/products/` and `position` on a picture upload answer 400 naming the parameter instead
-  of 400 with Python's `invalid literal for int()`.
+  of 400 with Python's `invalid literal for int()`; `page` below 1 and a negative `page_size` there answer the same
+  400 instead of Django's "Negative indexing is not supported.". An empty `scope`, `feature_type` or
+  `parent_category` is ignored like the other empty filters instead of a 400.
+
+### Fixed
+
+- Admin API: `files/upload/` with an unknown `file_type` answers 400 `Invalid file type: ...` instead of 500, and a
+  picture upload with a bad `position` is refused before the picture is stored (it left an unlinked picture).
 
 ## 3.6.0 — 2026-11-04
 

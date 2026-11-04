@@ -16,6 +16,8 @@ from django.core.exceptions import ObjectDoesNotExist
 from django.core.files.uploadedfile import SimpleUploadedFile
 
 from django_pim.exceptions import InvalidRequestError
+from django_pim.models import FeatureTypeEnum, Product, ProductAttribute
+from tests.factories import FeatureFactory
 from tests.test_admin_api_v2_errors import CH, OTHER, SKU, V2, world  # noqa: F401 (world: fixture)
 
 pytestmark = pytest.mark.usefixtures("world")
@@ -154,6 +156,8 @@ def test_lower_layer_does_not_exist_hides_its_message(authenticated_client, aler
         (f"{CH}/products/?product_class=x", "product_class"),
         (f"{CH}/categories/v2err-category/products/?page=x", "page"),
         (f"{CH}/categories/v2err-category/products/?page_size=x", "page_size"),
+        (f"{CH}/categories/v2err-category/products/?page=0", "page"),
+        (f"{CH}/categories/v2err-category/products/?page_size=-5", "page_size"),
     ],
 )
 def test_non_integer_query_parameter_is_a_named_400(authenticated_client, path, field):
@@ -166,13 +170,24 @@ def test_non_integer_query_parameter_is_a_named_400(authenticated_client, path, 
 @pytest.mark.django_db
 def test_non_integer_picture_position_is_a_named_400(authenticated_client):
     image = SimpleUploadedFile("x.png", b"not-really-a-png", content_type="image/png")
-    with patch(f"{VIEWS}.product_picture_views.upload_picture"):
+    with patch(f"{VIEWS}.product_picture_views.upload_picture") as upload:
         response = authenticated_client.post(
             f"{V2}/{PRODUCT}/pictures/", {"image": image, "position": "x"}, format="multipart"
         )
 
     assert response.status_code == 400, response.content
     assert [d["field"] for d in response.json()["details"]] == ["position"]
+    assert not upload.called  # refused before a Picture is stored
+
+
+@pytest.mark.django_db
+def test_file_upload_with_unknown_file_type_is_a_400(authenticated_client):
+    pdf = SimpleUploadedFile("x.pdf", b"%PDF-1.4 synthetic", content_type="application/pdf")
+
+    response = authenticated_client.post(f"{V2}/files/upload/", {"file": pdf, "file_type": "bogus"}, format="multipart")
+
+    assert response.status_code == 400, response.content
+    assert "Invalid file type: 'bogus'" in _text(response.json())
 
 
 @pytest.mark.django_db
@@ -188,3 +203,21 @@ def test_idx_normalizator_refusal_stays_a_400(authenticated_client, path, payloa
 
     assert response.status_code == 400, response.content
     assert text in _text(response.json())
+
+
+@pytest.mark.django_db
+def test_product_attribute_invariant_stays_a_400(authenticated_client):
+    """``ProductAttribute.save()`` refuses a row without its value: a 400 with its text, as in 3.6.0."""
+    product = Product.objects.get(real_product__sku=SKU)
+    feature = FeatureFactory(idx="v2err-no-value", feature_type=FeatureTypeEnum.VARCHAR255)
+    ProductAttribute.objects.bulk_create([ProductAttribute(product=product, feature=feature)])
+    Product.objects.filter(pk=product.pk).update(inherit_attributes=True)
+
+    response = authenticated_client.post(
+        f"{V2}/{PRODUCT}/toggle-override/",
+        {"feature_idx": "v2err-no-value", "language": "en", "override": True},
+        format="json",
+    )
+
+    assert response.status_code == 400, response.content
+    assert "value_txt can not be None" in _text(response.json())

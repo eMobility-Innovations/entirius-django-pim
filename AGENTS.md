@@ -119,9 +119,10 @@ Layer rule: `API → Services → Models → DB`. No ORM in views.
 Errors: admin views raise DRF exceptions (`NotFound`, `ValidationError`, `api/admin/errors.py` `Conflict` and
 `query_param_error`) and the service's v2 handler builds the envelope; never return an error as `{"detail": ...}`.
 A service refusal meant for the client is an `InvalidRequestError` (`exceptions.py`, a `ClientError` and a
-`ValueError`); views catch only that type and answer `raise_client_error(e)` with its `client_message`. Never
-`except ValueError` and `str(e)` in a view (CodeQL `py/stack-trace-exposure`): any other exception is a 500.
-`validators.py` wraps the `idx_normalizator` checks so a bad idx, SKU or EAN stays a 400.
+`ValueError`); views catch only that type and answer its `client_message` (`raise_client_error(e)`, or
+`raise_client_error(e, Conflict)` for a 409). Never `except ValueError` and `str(e)` in a view (CodeQL
+`py/stack-trace-exposure`): any other exception is a 500. `validators.py` wraps the `idx_normalizator` checks so a bad
+idx, SKU or EAN stays a 400; integer query parameters go through `int_query_param()`.
 Only `internal_error()` (500, `debug_id` = logged `error_id`) and `validation_error_response()` (product create's
 own issue codes) build an envelope by hand. `tests/settings.py` points DRF at the v2 handler, so tests see what the
 service answers.

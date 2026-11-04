@@ -11,6 +11,8 @@ The ``idx_normalizator`` checks are wrapped here: their text describes the calle
 leaves as an ``InvalidRequestError`` (a 400 with that text) instead of a bare ``ValueError``.
 """
 
+from collections.abc import Callable
+
 import idx_normalizator
 
 from django_pim.exceptions import InvalidRequestError
@@ -80,25 +82,21 @@ def validate_routable_sku(sku: str) -> None:
         )
 
 
-def validate_idx(idx: str, min_len: int = 1, max_len: int = 128) -> None:
-    """``idx_normalizator.validate_idx`` with its refusal as an ``InvalidRequestError``."""
+def _as_refusal(check: Callable[..., None], *args: object, **kwargs: object) -> None:
+    """Run an ``idx_normalizator`` check; its ``ValueError`` describes the caller's input, so it leaves as a refusal."""
     try:
-        idx_normalizator.validate_idx(idx, min_len=min_len, max_len=max_len)
+        check(*args, **kwargs)
     except ValueError as exc:
         raise InvalidRequestError(str(exc)) from exc
+
+
+def validate_idx(idx: str, min_len: int = 1, max_len: int = 128) -> None:
+    _as_refusal(idx_normalizator.validate_idx, idx, min_len=min_len, max_len=max_len)
 
 
 def validate_sku(sku: str) -> None:
-    """``idx_normalizator.validate_sku`` with its refusal as an ``InvalidRequestError``."""
-    try:
-        idx_normalizator.validate_sku(sku)
-    except ValueError as exc:
-        raise InvalidRequestError(str(exc)) from exc
+    _as_refusal(idx_normalizator.validate_sku, sku)
 
 
 def validate_ean(ean: str | None) -> None:
-    """``idx_normalizator.validate_ean`` with its refusal as an ``InvalidRequestError``."""
-    try:
-        idx_normalizator.validate_ean(ean)
-    except ValueError as exc:
-        raise InvalidRequestError(str(exc)) from exc
+    _as_refusal(idx_normalizator.validate_ean, ean)

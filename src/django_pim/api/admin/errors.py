@@ -41,14 +41,18 @@ def query_param_error(param: str, message: str) -> ValidationError:
     return exc
 
 
-def int_query_param(raw: str | None, param: str) -> int | None:
-    """An optional integer query parameter: ``None`` when absent, a 400 naming ``param`` when not an integer."""
+def int_query_param(raw: str | None, param: str, minimum: int | None = None) -> int | None:
+    """An optional integer query parameter: ``None`` when absent, a 400 naming ``param`` when not an integer
+    or below ``minimum``."""
     if not raw:
         return None
     try:
-        return int(raw)
+        value = int(raw)
     except ValueError:
         raise query_param_error(param, f"Invalid {param} parameter: must be an integer") from None
+    if minimum is not None and value < minimum:
+        raise query_param_error(param, f"Invalid {param} parameter: must be at least {minimum}")
+    return value
 
 
 def raise_client_error(exc: ClientError, error_class: type[APIException] = ValidationError) -> NoReturn:
