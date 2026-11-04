@@ -21,7 +21,9 @@
   `product_ids` limit in OpenAPI.
 - Admin API: an unknown channel on `{channel}/feature-sets/` (list, detail, features) and
   `{channel}/attributes-groups/`, and an unknown channel or product on the picture, video, link and file routes
-  under `products/{sku}/.../{pk}/`, answer 404 `NOT_FOUND` like the other channel routes instead of 500.
+  under `products/{sku}/.../{pk}/`, answer 404 `NOT_FOUND` instead of 500.
+- Admin API: `PATCH products/{sku}/links/{pk}/` with an unknown `link_type_idx` answers 404 and with a link type that
+  another link between the same products already has answers 400, like create; both were 500.
 
 ## 3.5.0 — 2026-10-27
 - Admin API: a page out of range (`?page=0`, past the last page) answers 404 `NOT_FOUND` in the v2 envelope

@@ -114,13 +114,25 @@ def create_product_link(
 
 @transaction.atomic
 def update_product_link(channel_idx: str, sku: str, pk: int, **fields: object) -> ProductLink:
-    """Update a product link."""
+    """Update a product link.
+
+    Raises:
+        Channel.DoesNotExist, Product.DoesNotExist, ProductLink.DoesNotExist, ProductLinkType.DoesNotExist
+        ValueError: If the new link type duplicates another link between the same products
+    """
     channel = Channel.objects.get(idx=channel_idx)
     product = Product.objects.select_related("real_product").get(shop=channel, real_product__sku__iexact=sku)
-    link = ProductLink.objects.get(product=product, pk=pk)
+    link = ProductLink.objects.select_related("linked_product__real_product").get(product=product, pk=pk)
 
     if "link_type_idx" in fields and fields["link_type_idx"] is not None:
-        link.link_type = ProductLinkType.objects.get(idx=fields.pop("link_type_idx"))
+        link_type_idx = fields.pop("link_type_idx")
+        link.link_type = ProductLinkType.objects.get(idx=link_type_idx)
+        duplicate = ProductLink.objects.filter(
+            product=product, linked_product=link.linked_product, link_type=link.link_type
+        ).exclude(pk=link.pk)
+        if duplicate.exists():
+            linked_sku = link.linked_product.real_product.sku
+            raise ValueError(f"Product link already exists: {sku} → {linked_sku} ({link_type_idx})")
 
     for field, value in fields.items():
         if value is not None:

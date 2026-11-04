@@ -253,6 +253,10 @@ class ProductLinkViewSet(viewsets.ViewSet):
             raise drf_exceptions.NotFound(f"Product with SKU '{sku}' not found in channel '{channel_idx}'") from None
         except ProductLink.DoesNotExist:
             raise drf_exceptions.NotFound(f"ProductLink with pk {pk} not found") from None
+        except ProductLinkType.DoesNotExist:
+            raise drf_exceptions.NotFound(f"Link type '{data.link_type_idx}' not found") from None
+        except ValueError as e:
+            raise drf_exceptions.ValidationError(str(e)) from e
         except Exception as e:
             return internal_error(e)
 

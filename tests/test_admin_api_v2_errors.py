@@ -14,6 +14,7 @@ from unittest.mock import patch
 import pytest
 from django.core.files.uploadedfile import SimpleUploadedFile
 
+from django_pim.models import Product
 from django_pim.models.feature import FeatureScopeEnum
 from tests.factories import (
     AttributesGroupFactory,
@@ -24,6 +25,7 @@ from tests.factories import (
     GapDefinitionFactory,
     ProductCategoryFactory,
     ProductFactory,
+    ProductLinkFactory,
     ProductLinkTypeFactory,
     RealProductFactory,
     ShopFactory,
@@ -265,6 +267,38 @@ def test_bad_query_parameter_is_named(authenticated_client, world, path, field):
     body = assert_envelope(authenticated_client.get(f"{V2}/{path}"), 400, "VALIDATION_ERROR")
 
     assert [(d["field"], d["location"]) for d in body["details"]] == [(field, "query")]
+
+
+@pytest.mark.django_db
+class TestLinkUpdate:
+    """PATCH links/{pk}/ answered 500 for an unknown link type and for a type that duplicates another link."""
+
+    @pytest.fixture
+    def links(self, world):
+        product = Product.objects.get(shop=world, real_product__sku=SKU)
+        linked = ProductFactory(shop=world, real_product=RealProductFactory(sku="V2ERR-SKU-3"))
+        related = ProductLinkFactory(product=product, linked_product=linked, link_type__idx="v2err-related")
+        ProductLinkFactory(product=product, linked_product=linked, link_type__idx="v2err-crosssell")
+        return f"{V2}/{CH}/products/{SKU}/links/{related.pk}/"
+
+    def test_unknown_link_type_is_404(self, authenticated_client, links):
+        response = authenticated_client.patch(links, {"link_type_idx": "nope"}, format="json")
+
+        assert_envelope(response, 404, "NOT_FOUND")
+
+    def test_duplicate_link_type_is_400(self, authenticated_client, links):
+        response = authenticated_client.patch(links, {"link_type_idx": "v2err-crosssell"}, format="json")
+
+        body = assert_envelope(response, 400, "VALIDATION_ERROR")
+        assert "already exists" in body["details"][0]["description"]
+
+    def test_new_link_type_is_saved(self, authenticated_client, links):
+        ProductLinkTypeFactory(idx="v2err-upsell")
+
+        response = authenticated_client.patch(links, {"link_type_idx": "v2err-upsell"}, format="json")
+
+        assert response.status_code == 200, response.content
+        assert response.json()["link_type_idx"] == "v2err-upsell"
 
 
 @pytest.mark.django_db
