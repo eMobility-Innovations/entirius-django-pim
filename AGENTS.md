@@ -116,6 +116,12 @@ src/django_pim/
 
 Layer rule: `API → Services → Models → DB`. No ORM in views.
 
+Errors: admin views raise DRF exceptions (`NotFound`, `ValidationError`, `api/admin/errors.py` `Conflict` and
+`query_param_error`) and the service's v2 handler builds the envelope; never return an error as `{"detail": ...}`.
+Only `internal_error()` (500, `debug_id` = logged `error_id`) and `validation_error_response()` (product create's
+own issue codes) build an envelope by hand. `tests/settings.py` points DRF at the v2 handler, so tests see what the
+service answers.
+
 Signals: PIM publishes Django signals on model changes (Product, ProductAttribute, Feature, Attribute, …) that
 trigger the Matrix read-model sync through Celery; off by default, enabled by `PimSettings.matrix_signals_enabled`
 in Django admin. Pattern: https://docs.entirius.com/architecture/signal-driven-sync/

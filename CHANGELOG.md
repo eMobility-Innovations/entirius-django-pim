@@ -1,5 +1,22 @@
 # Changelog
 
+## Unreleased
+
+### Fixed
+
+- Admin API: every error answers in the API v2 envelope `{error, message, debug_id, details[]}` instead of
+  `{"detail": ...}`; status codes are unchanged. The views raise DRF exceptions (`NotFound`, `ValidationError`, a
+  409 `Conflict`) and the service's v2 handler builds the body; a 500 keeps its `error_id`, now as `debug_id`. A
+  404 carries the generic `message` (the old text goes to the log), a 400 from a service rule keeps its text in
+  `details[0].description`. A client that read `detail` reads the envelope now. On the legacy alias
+  `/api/pim/admin/` the service's non-v2 handler formats the raised errors (Volkanos: contentdb `{meta, data}`), so
+  its bodies change too; no in-tree client parses them.
+- Admin API: `gaps/findings/` without `product_ids`, with non-integers or with more than 200 ids names
+  `product_ids` (`location: "query"`); so do `gaps/exemptions/` without `sku`, `features/` with a bad `scope` or
+  `feature_type` and `categories/` with a bad `parent_category`. The findings operation documents the 400 and the
+  `product_ids` limit in OpenAPI.
+- Requires `entirius-django-utils>=2.4.0` (query location on validation details, a 409 keeps its message).
+
 ## 3.5.0 — 2026-10-27
 - Admin API: a page out of range (`?page=0`, past the last page) answers 404 `NOT_FOUND` in the v2 envelope
   instead of 500, in every admin list view; a `page_size` that is not a positive integer answers 400
