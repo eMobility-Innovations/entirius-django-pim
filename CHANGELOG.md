@@ -1,5 +1,16 @@
 # Changelog
 
+## Unreleased
+
+### Fixed
+
+- OpenAPI: the 200 of every admin list operation (channels, products, categories and their products, features,
+  feature sets, attributes, attributes groups, link types, files categories, gap definitions, gap findings, gap
+  exemptions, and a product's files, links, pictures and videos; 20 under `/api/pim/v2/admin/`, 17 of them in the
+  published service spec, and their `/api/pim/admin/` twins) describes the object the view returns instead of an
+  array of it: a page `{count, next, previous, results}`, `{results}` (gap findings keyed by product pk, gap
+  exemptions), or `{positioned, unpositioned, ...}` (category products). The bodies are unchanged.
+
 ## 3.5.0 — 2026-10-27
 - Admin API: a page out of range (`?page=0`, past the last page) answers 404 `NOT_FOUND` in the v2 envelope
   instead of 500, in every admin list view; a `page_size` that is not a positive integer answers 400

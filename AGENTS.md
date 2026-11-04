@@ -141,6 +141,10 @@ own gate (`PimSettings.gaps_enabled`), Redis keys and Celery tasks.
 
 ## Gotchas
 
+- A list view's response model carries `@list_body` (`schemas/responses/_openapi.py`): drf-spectacular describes
+  the 200 of every `list` action as an array of its model, while the views answer one object (a page, `{results}`
+  or the category-products split);
+  `tests/test_openapi_list_responses.py` fails on a new list action without it
 - Tests need Postgres 15+ — set `DATABASE_URL` (default `postgresql://postgres:postgres@localhost:5432/test`)
 - RealProduct fields (weight, EAN, dimensions) are shared -- updating affects all channels
 - `T9N_DEFAULT_LANG` defaults to `"en"` -- affects name resolution fallback
