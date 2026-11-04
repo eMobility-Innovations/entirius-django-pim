@@ -8,7 +8,7 @@ ProductLink service layer for business logic.
 CRUD operations for product-to-product links (related, crosssell, upsell, etc.).
 """
 
-from django.db import transaction
+from django.db import IntegrityError, transaction
 from django.db.models import QuerySet
 
 from ..models import Channel, Product, ProductLink, ProductLinkType
@@ -28,7 +28,23 @@ def _is_duplicate(link: ProductLink) -> bool:
     others = ProductLink.objects.filter(
         product_id=link.product_id, linked_product_id=link.linked_product_id, link_type_id=link.link_type_id
     )
-    return others.exclude(pk=link.pk).exists() if link.pk else others.exists()
+    return others.exclude(pk=link.pk).exists()
+
+
+def _duplicate_error(sku: str, link: ProductLink) -> ValueError:
+    linked_sku = link.linked_product.real_product.sku
+    return ValueError(f"Product link already exists: {sku} → {linked_sku} ({link.link_type.idx})")
+
+
+def _save_unique(sku: str, link: ProductLink) -> None:
+    """Save the link; a duplicate, found by the check or by unique_together under a concurrent request, is a ValueError."""
+    if _is_duplicate(link):
+        raise _duplicate_error(sku, link)
+    try:
+        with transaction.atomic():
+            link.save()
+    except IntegrityError:
+        raise _duplicate_error(sku, link) from None
 
 
 def resolve_product_name(product: Product) -> str:
@@ -113,9 +129,7 @@ def create_product_link(
         raise ValueError("Cannot link a product to itself")
 
     link = ProductLink(product=product, linked_product=linked_product, link_type=link_type, position=position)
-    if _is_duplicate(link):
-        raise ValueError(f"Product link already exists: {sku} → {linked_product_sku} ({link_type_idx})")
-    link.save()
+    _save_unique(sku, link)
 
     return ProductLink.objects.select_related("linked_product__real_product", "link_type").get(pk=link.pk)
 
@@ -136,16 +150,12 @@ def update_product_link(channel_idx: str, sku: str, pk: int, **fields: object) -
     link = ProductLink.objects.get(product=product, pk=pk)
 
     if "link_type_idx" in fields and fields["link_type_idx"] is not None:
-        link_type_idx = fields.pop("link_type_idx")
-        link.link_type = ProductLinkType.objects.get(idx=link_type_idx)
-        if _is_duplicate(link):
-            linked_sku = link.linked_product.real_product.sku
-            raise ValueError(f"Product link already exists: {sku} → {linked_sku} ({link_type_idx})")
+        link.link_type = ProductLinkType.objects.get(idx=fields.pop("link_type_idx"))
 
     for field, value in fields.items():
         if value is not None:
             setattr(link, field, value)
-    link.save()
+    _save_unique(sku, link)
 
     return ProductLink.objects.select_related("linked_product__real_product", "link_type").get(pk=link.pk)
 

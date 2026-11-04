@@ -298,6 +298,23 @@ class TestLinkUpdate:
         assert "already exists" in body["details"][0]["description"]
         assert self._stored_type(links) == "v2err-related"
 
+    def test_duplicate_lost_to_a_concurrent_request_is_400(self, authenticated_client, links):
+        with patch("django_pim.services.product_link_service._is_duplicate", return_value=False):
+            response = authenticated_client.patch(links, {"link_type_idx": "v2err-crosssell"}, format="json")
+
+        body = assert_envelope(response, 400, "VALIDATION_ERROR")
+        assert "already exists" in body["details"][0]["description"]
+        assert self._stored_type(links) == "v2err-related"
+
+    def test_service_refuses_fields_outside_the_whitelist(self, links):
+        from django_pim.services import update_product_link
+
+        other = ProductFactory(shop=ShopFactory(idx=CH), real_product=RealProductFactory(sku="V2ERR-SKU-4"))
+        pk = int(links.rstrip("/").rsplit("/", 1)[1])
+
+        with pytest.raises(ValueError, match="not editable"):
+            update_product_link(channel_idx=CH, sku=SKU, pk=pk, linked_product=other)
+
     def test_empty_link_type_is_400_like_create(self, authenticated_client, links):
         response = authenticated_client.patch(links, {"link_type_idx": ""}, format="json")
 
