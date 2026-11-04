@@ -532,6 +532,7 @@ dev = [
 test = [
     { name = "dj-database-url" },
     { name = "factory-boy" },
+    { name = "jsonschema" },
     { name = "psycopg", extra = ["binary"] },
     { name = "pytest" },
     { name = "pytest-django" },
@@ -555,6 +556,7 @@ requires-dist = [
     { name = "entirius-py-int-enum-choices", specifier = ">=2.0.0" },
     { name = "entirius-py-process-logger", specifier = ">=2.0.0" },
     { name = "factory-boy", marker = "extra == 'test'" },
+    { name = "jsonschema", marker = "extra == 'test'", specifier = ">=4.18" },
     { name = "opencv-contrib-python", specifier = ">=4.5" },
     { name = "pillow", specifier = ">=9.1.0" },
     { name = "pre-commit", marker = "extra == 'dev'" },
