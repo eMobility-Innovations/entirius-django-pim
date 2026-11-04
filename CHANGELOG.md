@@ -1,5 +1,25 @@
 # Changelog
 
+## Unreleased
+
+### Security
+
+- Admin API: no exception text reaches a response (CodeQL `py/stack-trace-exposure`, 42 alerts). A refusal the PIM
+  writes for the client is an `InvalidRequestError` (`django_pim.exceptions`, a `ClientError` and still a
+  `ValueError` for direct callers); the views answer only its `client_message`. Any other `ValueError` from a lower
+  layer answers 500 `INTERNAL_ERROR` with a `debug_id`, its text goes to the log. The gap exemption routes answer an
+  `ObjectDoesNotExist` with `NotFound("Not found")` (the v2 handler already replaced the 404 text).
+
+### Changed
+
+- Admin API: a `ValueError` the PIM did not raise as a refusal answers 500 instead of 400 with its text. Every
+  refusal the services, models and validators write (duplicate idx/SKU, SYSTEM feature, circular category,
+  inheritance off, unknown role/language/ordering/severity/gap params, a bad idx, SKU or EAN from
+  `idx_normalizator`) keeps its 400 (409 for add-to-channel) and its message.
+- Admin API: a non-integer `visibility` or `product_class` on `{channel}/products/`, `page` or `page_size` on
+  `{channel}/categories/{idx}/products/` and `position` on a picture upload answer 400 naming the parameter instead
+  of 400 with Python's `invalid literal for int()`.
+
 ## 3.6.0 — 2026-11-04
 
 ### Changed

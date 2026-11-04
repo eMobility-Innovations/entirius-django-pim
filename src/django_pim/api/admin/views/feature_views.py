@@ -19,6 +19,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework_simplejwt.authentication import JWTAuthentication
 
+from ....exceptions import InvalidRequestError
 from ....schemas import AttributeListResponse, AttributeResponse, FeatureListResponse, FeatureResponse
 from ....schemas.requests import CreateFeatureRequest, UpdateFeatureRequest
 from ....services import (
@@ -32,7 +33,7 @@ from ....services import (
     resolve_attribute_name,
     update_feature,
 )
-from ..errors import internal_error, query_param_error
+from ..errors import internal_error, query_param_error, raise_client_error
 from ..pagination import AdminPageNumberPagination
 from ..permissions import IsAdminUser
 
@@ -225,8 +226,8 @@ class FeatureViewSet(viewsets.ViewSet):
 
         except ObjectDoesNotExist:
             raise drf_exceptions.NotFound("Feature not found") from None
-        except ValueError as e:
-            raise drf_exceptions.ValidationError(f"Invalid parameter: {str(e)}") from e
+        except InvalidRequestError as e:
+            raise drf_exceptions.ValidationError(f"Invalid parameter: {e.client_message}") from e
         except Exception as e:
             return internal_error(e)
 
@@ -292,8 +293,8 @@ class FeatureViewSet(viewsets.ViewSet):
                 is_seo=data.is_seo,
             )
             return Response(build_feature_response(feature).model_dump(), status=status.HTTP_201_CREATED)
-        except ValueError as e:
-            raise drf_exceptions.ValidationError(str(e)) from e
+        except InvalidRequestError as e:
+            raise_client_error(e)
         except Exception as e:
             return internal_error(e)
 
@@ -321,8 +322,8 @@ class FeatureViewSet(viewsets.ViewSet):
             return Response(build_feature_response(feature).model_dump(), status=status.HTTP_200_OK)
         except ObjectDoesNotExist:
             raise drf_exceptions.NotFound(f"Feature '{idx}' not found") from None
-        except ValueError as e:
-            raise drf_exceptions.ValidationError(str(e)) from e
+        except InvalidRequestError as e:
+            raise_client_error(e)
         except Exception as e:
             return internal_error(e)
 
@@ -343,8 +344,8 @@ class FeatureViewSet(viewsets.ViewSet):
             return Response({"deleted": deleted}, status=status.HTTP_200_OK)
         except ObjectDoesNotExist:
             raise drf_exceptions.NotFound(f"Feature '{idx}' not found") from None
-        except ValueError as e:
-            raise drf_exceptions.ValidationError(str(e)) from e
+        except InvalidRequestError as e:
+            raise_client_error(e)
         except Exception as e:
             return internal_error(e)
 
