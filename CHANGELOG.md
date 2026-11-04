@@ -9,6 +9,7 @@
   `ValueError` for direct callers); the views answer only its `client_message`. Any other `ValueError` from a lower
   layer answers 500 `INTERNAL_ERROR` with a `debug_id`, its text goes to the log. The gap exemption routes answer an
   `ObjectDoesNotExist` with `NotFound("Not found")` (the v2 handler already replaced the 404 text).
+- CI: the workflow token is read-only (`permissions: contents: read`, CodeQL `actions/missing-workflow-permissions`).
 
 ### Changed
 
