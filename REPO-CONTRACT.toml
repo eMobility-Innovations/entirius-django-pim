@@ -1,0 +1,35 @@
+# THE REPO CONTRACT — what this repo is, what it does, and what proves it.
+
+[repo]
+name         = "entirius-django-pim"
+what_it_is   = "A reusable Django app (package entirius-django-pim, app django_pim) — the Product Information Management module of Entirius."
+what_it_does = """
+Full CRUD Admin API (v2) for products, categories, features, feature sets, attributes,
+product links, pictures, files and videos, plus channel inheritance and quality gaps. It is
+deployed only as a dependency of the services that install it, so a vulnerable dependency
+locked here reaches every one of them.
+"""
+owner        = "eMobility-Innovations infrastructure — operator patryk"
+status       = "active"
+
+[rules]
+must = [
+  "The suite runs against POSTGRES 15+, never SQLite (tests/settings.py reads DATABASE_URL; verify.sh points it at the runner's Postgres)",
+  "Each verify.sh run uses its own uniquely-named database, so concurrent runs on one runner never share data",
+  "uv.lock is committed and verify.sh syncs it --frozen, so the gate tests exactly the locked dependency set",
+  "Every admin route carries an access_area (tests/test_access_ownership.py)",
+]
+
+[tests]
+command = "./verify.sh"
+suite   = "tests"
+covers  = """
+The pytest-django suite under tests/ exercises the v2 admin API, services, channel
+inheritance and quality-gap detection against a real Postgres.
+"""
+coverage_floor = 80
+
+[runner]
+# The suite needs a Postgres SERVER (15 or newer): pytest-django creates the test database first.
+toolchains     = ["python@3.12", "postgres@16"]
+postgres_roles = ["entirius_pim_test"]
